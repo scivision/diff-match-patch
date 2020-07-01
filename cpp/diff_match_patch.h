@@ -16,8 +16,14 @@
  * limitations under the License.
  */
 
-#ifndef DIFF_MATCH_PATCH_H
-#define DIFF_MATCH_PATCH_H
+#pragma once
+
+#include <string>
+#include <deque>
+#include <vector>
+#include <tuple>
+#include <regex>
+#include <map>
 
 /*
  * Functions for diff, match and patch.
@@ -34,21 +40,16 @@
  * library:
  *
 
- #include <QtCore>
- #include <QString>
- #include <QList>
- #include <QMap>
- #include <QVariant>
  #include "diff_match_patch.h"
  int main(int argc, char **argv) {
    diff_match_patch dmp;
-   QString str1 = QString("First string in diff");
-   QString str2 = QString("Second string in diff");
+   std::wstring str1 = std::wstring("First string in diff");
+   std::wstring str2 = std::wstring("Second string in diff");
 
-   QString strPatch = dmp.patch_toText(dmp.patch_make(str1, str2));
-   QPair<QString, QVector<bool> > out
+   std::wstring strPatch = dmp.patch_toText(dmp.patch_make(str1, str2));
+   std::pair<std::wstring, std::deque<bool>> out
        = dmp.patch_apply(dmp.patch_fromText(strPatch), str1);
-   QString strResult = out.first;
+   std::wstring strResult = out.first;
 
    // here, strResult will equal str2 above.
    return 0;
@@ -75,7 +76,7 @@ class Diff {
  public:
   Operation operation;
   // One of: INSERT, DELETE or EQUAL.
-  QString text;
+  std::wstring text;
   // The text associated with this diff operation.
 
   /**
@@ -83,14 +84,14 @@ class Diff {
    * @param operation One of INSERT, DELETE or EQUAL.
    * @param text The text being applied.
    */
-  Diff(Operation _operation, const QString &_text);
+  Diff(Operation _operation, const std::wstring &_text);
   Diff();
   inline bool isNull() const;
-  QString toString() const;
+  std::wstring toString() const;
   bool operator==(const Diff &d) const;
   bool operator!=(const Diff &d) const;
 
-  static QString strOperation(Operation op);
+  static std::wstring strOperation(Operation op);
 };
 
 
@@ -99,7 +100,7 @@ class Diff {
 */
 class Patch {
  public:
-  QList<Diff> diffs;
+  std::deque<Diff> diffs;
   int start1;
   int start2;
   int length1;
@@ -109,8 +110,8 @@ class Patch {
    * Constructor.  Initializes with an empty list of diffs.
    */
   Patch();
-  bool isNull() const;
-  QString toString();
+  bool empty() const;
+  std::wstring toString() const;
 };
 
 
@@ -149,8 +150,8 @@ class diff_match_patch {
 
  private:
   // Define some regex patterns for matching boundaries.
-  static QRegExp BLANKLINEEND;
-  static QRegExp BLANKLINESTART;
+  static std::wregex BLANKLINEEND;
+  static std::wregex BLANKLINESTART;
 
 
  public:
@@ -169,7 +170,7 @@ class diff_match_patch {
    * @param text2 New string to be diffed.
    * @return Linked List of Diff objects.
    */
-  QList<Diff> diff_main(const QString &text1, const QString &text2);
+  std::deque<Diff> diff_main(const std::wstring &text1, const std::wstring &text2);
 
   /**
    * Find the differences between two texts.
@@ -180,7 +181,7 @@ class diff_match_patch {
    *     If true, then run a faster slightly less optimal diff.
    * @return Linked List of Diff objects.
    */
-  QList<Diff> diff_main(const QString &text1, const QString &text2, bool checklines);
+  std::deque<Diff> diff_main(const std::wstring &text1, const std::wstring &text2, bool checklines);
 
   /**
    * Find the differences between two texts.  Simplifies the problem by
@@ -195,7 +196,7 @@ class diff_match_patch {
    * @return Linked List of Diff objects.
    */
  private:
-  QList<Diff> diff_main(const QString &text1, const QString &text2, bool checklines, clock_t deadline);
+  std::deque<Diff> diff_main(const std::wstring &text1, const std::wstring &text2, bool checklines, clock_t deadline);
 
   /**
    * Find the differences between two texts.  Assumes that the texts do not
@@ -209,7 +210,7 @@ class diff_match_patch {
    * @return Linked List of Diff objects.
    */
  private:
-  QList<Diff> diff_compute(QString text1, QString text2, bool checklines, clock_t deadline);
+  std::deque<Diff> diff_compute(std::wstring text1, std::wstring text2, bool checklines, clock_t deadline);
 
   /**
    * Do a quick line-level diff on both strings, then rediff the parts for
@@ -221,7 +222,7 @@ class diff_match_patch {
    * @return Linked List of Diff objects.
    */
  private:
-  QList<Diff> diff_lineMode(QString text1, QString text2, clock_t deadline);
+  std::deque<Diff> diff_lineMode(std::wstring text1, std::wstring text2, clock_t deadline);
 
   /**
    * Find the 'middle snake' of a diff, split the problem in two
@@ -232,7 +233,7 @@ class diff_match_patch {
    * @return Linked List of Diff objects.
    */
  protected:
-  QList<Diff> diff_bisect(const QString &text1, const QString &text2, clock_t deadline);
+  std::deque<Diff> diff_bisect(const std::wstring &text1, const std::wstring &text2, clock_t deadline);
 
   /**
    * Given the location of the 'middle snake', split the diff in two parts
@@ -245,7 +246,7 @@ class diff_match_patch {
    * @return LinkedList of Diff objects.
    */
  private:
-  QList<Diff> diff_bisectSplit(const QString &text1, const QString &text2, int x, int y, clock_t deadline);
+  std::deque<Diff> diff_bisectSplit(const std::wstring &text1, const std::wstring &text2, int x, int y, clock_t deadline);
 
   /**
    * Split two texts into a list of strings.  Reduce the texts to a string of
@@ -257,7 +258,7 @@ class diff_match_patch {
    *     of the List of unique strings is intentionally blank.
    */
  protected:
-  QList<QVariant> diff_linesToChars(const QString &text1, const QString &text2); // return elems 0 and 1 are QString, elem 2 is QStringList
+  std::tuple<std::wstring, std::wstring, std::deque<std::wstring>> diff_linesToChars(const std::wstring &text1, const std::wstring &text2); // return elems 0 and 1 are std::wstring, elem 2 is std::deque<std::wstring>
 
   /**
    * Split a text into a list of strings.  Reduce the texts to a string of
@@ -268,8 +269,8 @@ class diff_match_patch {
    * @return Encoded string.
    */
  private:
-  QString diff_linesToCharsMunge(const QString &text, QStringList &lineArray,
-                                 QMap<QString, int> &lineHash);
+  std::wstring diff_linesToCharsMunge(const std::wstring &text, std::deque<std::wstring> &lineArray,
+                                 std::map<std::wstring, int> &lineHash);
 
   /**
    * Rehydrate the text in a diff from a string of line hashes to real lines of
@@ -278,7 +279,7 @@ class diff_match_patch {
    * @param lineArray List of unique strings.
    */
  private:
-  void diff_charsToLines(QList<Diff> &diffs, const QStringList &lineArray);
+  void diff_charsToLines(std::deque<Diff> &diffs, const std::deque<std::wstring> &lineArray);
 
   /**
    * Determine the common prefix of two strings.
@@ -287,7 +288,7 @@ class diff_match_patch {
    * @return The number of characters common to the start of each string.
    */
  public:
-  int diff_commonPrefix(const QString &text1, const QString &text2);
+  int diff_commonPrefix(const std::wstring &text1, const std::wstring &text2);
 
   /**
    * Determine the common suffix of two strings.
@@ -296,7 +297,7 @@ class diff_match_patch {
    * @return The number of characters common to the end of each string.
    */
  public:
-  int diff_commonSuffix(const QString &text1, const QString &text2);
+  int diff_commonSuffix(const std::wstring &text1, const std::wstring &text2);
 
   /**
    * Determine if the suffix of one string is the prefix of another.
@@ -306,7 +307,7 @@ class diff_match_patch {
    *     string and the start of the second string.
    */
  protected:
-  int diff_commonOverlap(const QString &text1, const QString &text2);
+  int diff_commonOverlap(const std::wstring &text1, const std::wstring &text2);
 
   /**
    * Do the two texts share a substring which is at least half the length of
@@ -319,7 +320,7 @@ class diff_match_patch {
    *     common middle.  Or null if there was no match.
    */
  protected:
-  QStringList diff_halfMatch(const QString &text1, const QString &text2);
+  std::deque<std::wstring> diff_halfMatch(const std::wstring &text1, const std::wstring &text2);
 
   /**
    * Does a substring of shorttext exist within longtext such that the
@@ -332,14 +333,14 @@ class diff_match_patch {
    *     and the common middle.  Or null if there was no match.
    */
  private:
-  QStringList diff_halfMatchI(const QString &longtext, const QString &shorttext, int i);
+  std::deque<std::wstring> diff_halfMatchI(const std::wstring &longtext, const std::wstring &shorttext, int i);
 
   /**
    * Reduce the number of edits by eliminating semantically trivial equalities.
    * @param diffs LinkedList of Diff objects.
    */
  public:
-  void diff_cleanupSemantic(QList<Diff> &diffs);
+  void diff_cleanupSemantic(std::deque<Diff> &diffs);
 
   /**
    * Look for single edits surrounded on both sides by equalities
@@ -348,7 +349,7 @@ class diff_match_patch {
    * @param diffs LinkedList of Diff objects.
    */
  public:
-  void diff_cleanupSemanticLossless(QList<Diff> &diffs);
+  void diff_cleanupSemanticLossless(std::deque<Diff> &diffs);
 
   /**
    * Given two strings, compute a score representing whether the internal
@@ -359,14 +360,14 @@ class diff_match_patch {
    * @return The score.
    */
  private:
-  int diff_cleanupSemanticScore(const QString &one, const QString &two);
+  int diff_cleanupSemanticScore(const std::wstring &one, const std::wstring &two);
 
   /**
    * Reduce the number of edits by eliminating operationally trivial equalities.
    * @param diffs LinkedList of Diff objects.
    */
  public:
-  void diff_cleanupEfficiency(QList<Diff> &diffs);
+  void diff_cleanupEfficiency(std::deque<Diff> &diffs);
 
   /**
    * Reorder and merge like edit sections.  Merge equalities.
@@ -374,7 +375,7 @@ class diff_match_patch {
    * @param diffs LinkedList of Diff objects.
    */
  public:
-  void diff_cleanupMerge(QList<Diff> &diffs);
+  void diff_cleanupMerge(std::deque<Diff> &diffs);
 
   /**
    * loc is a location in text1, compute and return the equivalent location in
@@ -385,7 +386,7 @@ class diff_match_patch {
    * @return Location within text2.
    */
  public:
-  int diff_xIndex(const QList<Diff> &diffs, int loc);
+  int diff_xIndex(const std::deque<Diff> &diffs, int loc);
 
   /**
    * Convert a Diff list into a pretty HTML report.
@@ -393,7 +394,7 @@ class diff_match_patch {
    * @return HTML representation.
    */
  public:
-  QString diff_prettyHtml(const QList<Diff> &diffs);
+  std::wstring diff_prettyHtml(const std::deque<Diff> &diffs);
 
   /**
    * Compute and return the source text (all equalities and deletions).
@@ -401,7 +402,7 @@ class diff_match_patch {
    * @return Source text.
    */
  public:
-  QString diff_text1(const QList<Diff> &diffs);
+  std::wstring diff_text1(const std::deque<Diff> &diffs);
 
   /**
    * Compute and return the destination text (all equalities and insertions).
@@ -409,7 +410,7 @@ class diff_match_patch {
    * @return Destination text.
    */
  public:
-  QString diff_text2(const QList<Diff> &diffs);
+  std::wstring diff_text2(const std::deque<Diff> &diffs);
 
   /**
    * Compute the Levenshtein distance; the number of inserted, deleted or
@@ -418,7 +419,7 @@ class diff_match_patch {
    * @return Number of changes.
    */
  public:
-  int diff_levenshtein(const QList<Diff> &diffs);
+  int diff_levenshtein(const std::deque<Diff> &diffs);
 
   /**
    * Crush the diff into an encoded string which describes the operations
@@ -429,7 +430,7 @@ class diff_match_patch {
    * @return Delta text.
    */
  public:
-  QString diff_toDelta(const QList<Diff> &diffs);
+  std::wstring diff_toDelta(const std::deque<Diff> &diffs);
 
   /**
    * Given the original text1, and an encoded string which describes the
@@ -437,10 +438,10 @@ class diff_match_patch {
    * @param text1 Source string for the diff.
    * @param delta Delta text.
    * @return Array of diff tuples or null if invalid.
-   * @throws QString If invalid input.
+   * @throws std::wstring If invalid input.
    */
  public:
-  QList<Diff> diff_fromDelta(const QString &text1, const QString &delta);
+  std::deque<Diff> diff_fromDelta(const std::wstring &text1, const std::wstring &delta);
 
 
   //  MATCH FUNCTIONS
@@ -455,7 +456,7 @@ class diff_match_patch {
    * @return Best match index or -1.
    */
  public:
-  int match_main(const QString &text, const QString &pattern, int loc);
+  int match_main(const std::wstring &text, const std::wstring &pattern, int loc);
 
   /**
    * Locate the best instance of 'pattern' in 'text' near 'loc' using the
@@ -466,7 +467,7 @@ class diff_match_patch {
    * @return Best match index or -1.
    */
  protected:
-  int match_bitap(const QString &text, const QString &pattern, int loc);
+  int match_bitap(const std::wstring &text, const std::wstring &pattern, int loc);
 
   /**
    * Compute and return the score for a match with e errors and x location.
@@ -477,7 +478,7 @@ class diff_match_patch {
    * @return Overall score for match (0.0 = good, 1.0 = bad).
    */
  private:
-  double match_bitapScore(int e, int x, int loc, const QString &pattern);
+  double match_bitapScore(int e, int x, int loc, const std::wstring &pattern);
 
   /**
    * Initialise the alphabet for the Bitap algorithm.
@@ -485,7 +486,7 @@ class diff_match_patch {
    * @return Hash of character locations.
    */
  protected:
-  QMap<QChar, int> match_alphabet(const QString &pattern);
+  std::map<wchar_t, int> match_alphabet(const std::wstring &pattern);
 
 
  //  PATCH FUNCTIONS
@@ -498,7 +499,7 @@ class diff_match_patch {
    * @param text Source text.
    */
  protected:
-  void patch_addContext(Patch &patch, const QString &text);
+  void patch_addContext(Patch &patch, const std::wstring &text);
 
   /**
    * Compute a list of patches to turn text1 into text2.
@@ -508,7 +509,7 @@ class diff_match_patch {
    * @return LinkedList of Patch objects.
    */
  public:
-  QList<Patch> patch_make(const QString &text1, const QString &text2);
+  std::deque<Patch> patch_make(const std::wstring &text1, const std::wstring &text2);
 
   /**
    * Compute a list of patches to turn text1 into text2.
@@ -517,7 +518,7 @@ class diff_match_patch {
    * @return LinkedList of Patch objects.
    */
  public:
-  QList<Patch> patch_make(const QList<Diff> &diffs);
+  std::deque<Patch> patch_make(const std::deque<Diff> &diffs);
 
   /**
    * Compute a list of patches to turn text1 into text2.
@@ -526,10 +527,10 @@ class diff_match_patch {
    * @param text2 Ignored.
    * @param diffs Array of diff tuples for text1 to text2.
    * @return LinkedList of Patch objects.
-   * @deprecated Prefer patch_make(const QString &text1, const QList<Diff> &diffs).
+   * @deprecated Prefer patch_make(const std::wstring &text1, const std::deque<Diff> &diffs).
    */
  public:
-  QList<Patch> patch_make(const QString &text1, const QString &text2, const QList<Diff> &diffs);
+  std::deque<Patch> patch_make(const std::wstring &text1, const std::wstring &text2, const std::deque<Diff> &diffs);
 
   /**
    * Compute a list of patches to turn text1 into text2.
@@ -539,7 +540,7 @@ class diff_match_patch {
    * @return LinkedList of Patch objects.
    */
  public:
-  QList<Patch> patch_make(const QString &text1, const QList<Diff> &diffs);
+  std::deque<Patch> patch_make(const std::wstring &text1, const std::deque<Diff> &diffs);
 
   /**
    * Given an array of patches, return another array that is identical.
@@ -547,7 +548,7 @@ class diff_match_patch {
    * @return Array of patch objects.
    */
  public:
-  QList<Patch> patch_deepCopy(QList<Patch> &patches);
+  std::deque<Patch> patch_deepCopy(std::deque<Patch> &patches);
 
   /**
    * Merge a set of patches onto the text.  Return a patched text, as well
@@ -558,7 +559,7 @@ class diff_match_patch {
    *      boolean values.
    */
  public:
-  QPair<QString,QVector<bool> > patch_apply(QList<Patch> &patches, const QString &text);
+  std::pair<std::wstring,std::deque<bool> > patch_apply(std::deque<Patch> &patches, const std::wstring &text);
 
   /**
    * Add some padding on text start and end so that edges can match something.
@@ -567,7 +568,7 @@ class diff_match_patch {
    * @return The padding string added to each side.
    */
  public:
-  QString patch_addPadding(QList<Patch> &patches);
+  std::wstring patch_addPadding(std::deque<Patch> &patches);
 
   /**
    * Look through the patches and break up any which are longer than the
@@ -576,7 +577,7 @@ class diff_match_patch {
    * @param patches LinkedList of Patch objects.
    */
  public:
-  void patch_splitMax(QList<Patch> &patches);
+  void patch_splitMax(std::deque<Patch> &patches);
 
   /**
    * Take a list of patches and return a textual representation.
@@ -584,42 +585,15 @@ class diff_match_patch {
    * @return Text representation of patches.
    */
  public:
-  QString patch_toText(const QList<Patch> &patches);
+  std::wstring patch_toText(const std::deque<Patch> &patches);
 
   /**
    * Parse a textual representation of patches and return a List of Patch
    * objects.
    * @param textline Text representation of patches.
    * @return List of Patch objects.
-   * @throws QString If invalid input.
+   * @throws std::wstring If invalid input.
    */
  public:
-  QList<Patch> patch_fromText(const QString &textline);
-
-  /**
-   * A safer version of QString.mid(pos).  This one returns "" instead of
-   * null when the postion equals the string length.
-   * @param str String to take a substring from.
-   * @param pos Position to start the substring from.
-   * @return Substring.
-   */
- private:
-  static inline QString safeMid(const QString &str, int pos) {
-    return (pos == str.length()) ? QString("") : str.mid(pos);
-  }
-
-  /**
-   * A safer version of QString.mid(pos, len).  This one returns "" instead of
-   * null when the postion equals the string length.
-   * @param str String to take a substring from.
-   * @param pos Position to start the substring from.
-   * @param len Length of substring.
-   * @return Substring.
-   */
- private:
-  static inline QString safeMid(const QString &str, int pos, int len) {
-    return (pos == str.length()) ? QString("") : str.mid(pos, len);
-  }
+  std::deque<Patch> patch_fromText(const std::wstring &textline);
 };
-
-#endif // DIFF_MATCH_PATCH_H

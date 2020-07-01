@@ -16,8 +16,7 @@
  * limitations under the License.
  */
 
-#ifndef DIFF_MATCH_PATCH_TEST_H
-#define DIFF_MATCH_PATCH_TEST_H
+#pragma once
 
 class diff_match_patch_test {
  public:
@@ -85,5 +84,3 @@ class diff_match_patch_test {
       Diff d7 = Diff(INSERT, NULL), Diff d8 = Diff(INSERT, NULL),
       Diff d9 = Diff(INSERT, NULL), Diff d10 = Diff(INSERT, NULL));
 };
-
-#endif // DIFF_MATCH_PATCH_TEST_H
