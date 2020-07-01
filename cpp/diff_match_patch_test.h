@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include <deque>
+#include <map>
+
 class diff_match_patch_test {
  public:
   diff_match_patch_test();
@@ -61,26 +64,38 @@ class diff_match_patch_test {
   diff_match_patch dmp;
 
   // Define equality.
-  void assertEquals(const QString &strCase, int n1, int n2);
-  void assertEquals(const QString &strCase, const QString &s1, const QString &s2);
-  void assertEquals(const QString &strCase, const Diff &d1, const Diff &d2);
-  void assertEquals(const QString &strCase, const QList<Diff> &list1, const QList<Diff> &list2);
-  void assertEquals(const QString &strCase, const QList<QVariant> &list1, const QList<QVariant> &list2);
-  void assertEquals(const QString &strCase, const QVariant &var1, const QVariant &var2);
-  void assertEquals(const QString &strCase, const QMap<QChar, int> &m1, const QMap<QChar, int> &m2);
-  void assertEquals(const QString &strCase, const QStringList &list1, const QStringList &list2);
-  void assertTrue(const QString &strCase, bool value);
-  void assertFalse(const QString &strCase, bool value);
-  void assertEmpty(const QString &strCase, const QStringList &list);
+  void assertEquals(const std::wstring &strCase, int n1, int n2);
+  void assertEquals(const std::wstring &strCase, const std::wstring &s1, const std::wstring &s2);
+  void assertEquals(const std::wstring &strCase, const Diff &d1, const Diff &d2);
+  void assertEquals(const std::wstring &strCase, const std::deque<Diff> &list1, const std::deque<Diff> &list2);
+//   void assertEquals(const std::wstring &strCase, const std::deque<QVariant> &list1, const std::deque<QVariant> &list2);
+//   void assertEquals(const std::wstring &strCase, const QVariant &var1, const QVariant &var2);
+  void assertEquals(const std::wstring &strCase, const std::map<wchar_t, int> &m1, const std::map<wchar_t, int> &m2);
+  void assertEquals(const std::wstring &strCase, const std::deque<std::wstring> &list1, const std::deque<std::wstring> &list2);
+  void assertTrue(const std::wstring &strCase, bool value);
+  void assertFalse(const std::wstring &strCase, bool value);
+  void assertEmpty(const std::wstring &strCase, const std::deque<std::wstring> &list);
+
+  template<std::size_t I = 0, typename... Args>
+  typename std::enable_if<I == sizeof...(Args)>::type
+  assertEquals(const std::wstring &strCase, const std::tuple<Args...> &tuple1, const std::tuple<Args...> &tuple2)
+  {}
+  template<std::size_t I = 0, typename... Args>
+  typename std::enable_if<I < sizeof...(Args)>::type
+  assertEquals(const std::wstring &strCase, const std::tuple<Args...> &tuple1, const std::tuple<Args...> &tuple2)
+  {
+    assertEquals(strCase, std::get<I>(tuple1), std::get<I>(tuple2));
+    assertEquals<I + 1, Args...>(strCase, tuple1, tuple2);
+  }
 
   // Construct the two texts which made up the diff originally.
-  QStringList diff_rebuildtexts(QList<Diff> diffs);
+  std::deque<std::wstring> diff_rebuildtexts(std::deque<Diff> diffs);
   // Private function for quickly building lists of diffs.
-  QList<Diff> diffList(
-      // Diff(INSERT, NULL) is invalid and thus is used as the default argument.
-      Diff d1 = Diff(INSERT, NULL), Diff d2 = Diff(INSERT, NULL),
-      Diff d3 = Diff(INSERT, NULL), Diff d4 = Diff(INSERT, NULL),
-      Diff d5 = Diff(INSERT, NULL), Diff d6 = Diff(INSERT, NULL),
-      Diff d7 = Diff(INSERT, NULL), Diff d8 = Diff(INSERT, NULL),
-      Diff d9 = Diff(INSERT, NULL), Diff d10 = Diff(INSERT, NULL));
+  std::deque<Diff> diffList(
+      // Diff(INSERT, L"") is invalid and thus is used as the default argument.
+      Diff d1 = Diff(Diff::Operation::Insert, L""), Diff d2 = Diff(Diff::Operation::Insert, L""),
+      Diff d3 = Diff(Diff::Operation::Insert, L""), Diff d4 = Diff(Diff::Operation::Insert, L""),
+      Diff d5 = Diff(Diff::Operation::Insert, L""), Diff d6 = Diff(Diff::Operation::Insert, L""),
+      Diff d7 = Diff(Diff::Operation::Insert, L""), Diff d8 = Diff(Diff::Operation::Insert, L""),
+      Diff d9 = Diff(Diff::Operation::Insert, L""), Diff d10 = Diff(Diff::Operation::Insert, L""));
 };

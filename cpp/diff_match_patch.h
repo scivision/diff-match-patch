@@ -64,16 +64,16 @@
 *  Diff(Operation.EQUAL, " world.")}
 * which means: delete "Hello", add "Goodbye" and keep " world."
 */
-enum Operation {
-  DELETE, INSERT, EQUAL
-};
-
 
 /**
 * Class representing one diff operation.
 */
 class Diff {
  public:
+  enum class Operation {
+    Delete, Insert, Equal
+  };
+
   Operation operation;
   // One of: INSERT, DELETE or EQUAL.
   std::wstring text;

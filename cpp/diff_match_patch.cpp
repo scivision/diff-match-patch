@@ -50,7 +50,7 @@ std::wstring toPercentEncoding(const std::wstring& input, const std::string excl
     return input;
   std::string inputUTF8 = ToUTF8(input);
   std::stringstream outputUTF8;
-  for (int i = 0; i < inputUTF8.length(); ++i)
+  for (unsigned int i = 0; i < inputUTF8.length(); ++i)
   {
     unsigned char c = inputUTF8[i];
     if (((c >= 0x61 && c <= 0x7A)    // ALPHA
@@ -60,7 +60,7 @@ std::wstring toPercentEncoding(const std::wstring& input, const std::string excl
          || c == 0x2E                // .
          || c == 0x5F                // _
          || c == 0x7E                // ~
-         || exclude.find(c) != -1))
+         || exclude.find(c) != std::string::npos))
       outputUTF8 << c;
     else
     {
@@ -100,7 +100,7 @@ std::wstring fromPercentEncoding(const std::wstring &input)
 
 /**
  * Constructor.  Initializes the diff with the provided values.
- * @param operation One of INSERT, DELETE or EQUAL
+ * @param operation One of Diff::Operation::Insert, Diff::Operation::Delete or Diff::Operation::Equal
  * @param text The text being applied
  */
 Diff::Diff(Operation _operation, const std::wstring &_text) :
@@ -114,12 +114,12 @@ Diff::Diff() {
 
 std::wstring Diff::strOperation(Operation op) {
   switch (op) {
-    case INSERT:
-      return L"INSERT";
-    case DELETE:
-      return L"DELETE";
-    case EQUAL:
-      return L"EQUAL";
+    case Diff::Operation::Insert:
+      return L"Insert";
+    case Diff::Operation::Delete:
+      return L"Delete";
+    case Diff::Operation::Equal:
+      return L"Equal";
   }
   throw "Invalid operation.";
 }
@@ -205,13 +205,13 @@ std::wstring Patch::toString() const {
   // Escape the body of the patch with %xx notation.
   for (const Diff& aDiff : diffs) {
     switch (aDiff.operation) {
-      case INSERT:
+      case Diff::Operation::Insert:
         text += std::wstring(L"+");
         break;
-      case DELETE:
+      case Diff::Operation::Delete:
         text += std::wstring(L"-");
         break;
-      case EQUAL:
+      case Diff::Operation::Equal:
         text += std::wstring(L" ");
         break;
     }
@@ -258,16 +258,11 @@ std::deque<Diff> diff_match_patch::diff_main(const std::wstring &text1,
 
 std::deque<Diff> diff_match_patch::diff_main(const std::wstring &text1,
     const std::wstring &text2, bool checklines, clock_t deadline) {
-  // Check for null inputs.
-  if (text1.empty() || text2.empty()) {
-    throw "Null inputs. (diff_main)";
-  }
-
   // Check for equality (speedup).
   std::deque<Diff> diffs;
   if (text1 == text2) {
     if (!text1.empty()) {
-      diffs.push_back(Diff(EQUAL, text1));
+      diffs.push_back(Diff(Diff::Operation::Equal, text1));
     }
     return diffs;
   }
@@ -289,10 +284,10 @@ std::deque<Diff> diff_match_patch::diff_main(const std::wstring &text1,
 
   // Restore the prefix and suffix.
   if (!commonprefix.empty()) {
-    diffs.push_front(Diff(EQUAL, commonprefix));
+    diffs.push_front(Diff(Diff::Operation::Equal, commonprefix));
   }
   if (!commonsuffix.empty()) {
-    diffs.push_back(Diff(EQUAL, commonsuffix));
+    diffs.push_back(Diff(Diff::Operation::Equal, commonsuffix));
   }
 
   diff_cleanupMerge(diffs);
@@ -307,13 +302,13 @@ std::deque<Diff> diff_match_patch::diff_compute(std::wstring text1, std::wstring
 
   if (text1.empty()) {
     // Just add some text (speedup).
-    diffs.push_back(Diff(INSERT, text2));
+    diffs.push_back(Diff(Diff::Operation::Insert, text2));
     return diffs;
   }
 
   if (text2.empty()) {
     // Just delete some text (speedup).
-    diffs.push_back(Diff(DELETE, text1));
+    diffs.push_back(Diff(Diff::Operation::Delete, text1));
     return diffs;
   }
 
@@ -323,9 +318,9 @@ std::deque<Diff> diff_match_patch::diff_compute(std::wstring text1, std::wstring
     const int i = longtext.find(shorttext);
     if (i != -1) {
       // Shorter text is inside the longer text (speedup).
-      const Operation op = (text1.length() > text2.length()) ? DELETE : INSERT;
+      const Diff::Operation op = (text1.length() > text2.length()) ? Diff::Operation::Delete : Diff::Operation::Insert;
       diffs.push_back(Diff(op, longtext.substr(0, i)));
-      diffs.push_back(Diff(EQUAL, shorttext));
+      diffs.push_back(Diff(Diff::Operation::Equal, shorttext));
       diffs.push_back(Diff(op, longtext.substr(i + shorttext.length())));
       return diffs;
     }
@@ -333,8 +328,8 @@ std::deque<Diff> diff_match_patch::diff_compute(std::wstring text1, std::wstring
     if (shorttext.length() == 1) {
       // Single character string.
       // After the previous speedup, the character can't be an equality.
-      diffs.push_back(Diff(DELETE, text1));
-      diffs.push_back(Diff(INSERT, text2));
+      diffs.push_back(Diff(Diff::Operation::Delete, text1));
+      diffs.push_back(Diff(Diff::Operation::Insert, text2));
       return diffs;
     }
     // Garbage collect longtext and shorttext by scoping out.
@@ -356,7 +351,7 @@ std::deque<Diff> diff_match_patch::diff_compute(std::wstring text1, std::wstring
                                           checklines, deadline);
     // Merge the results.
     diffs = diffs_a;
-    diffs.push_back(Diff(EQUAL, mid_common));
+    diffs.push_back(Diff(Diff::Operation::Equal, mid_common));
     diffs.insert(diffs.end(), diffs_b.begin(), diffs_b.end());
     return diffs;
   }
@@ -387,7 +382,7 @@ std::deque<Diff> diff_match_patch::diff_lineMode(std::wstring text1, std::wstrin
 
   // Rediff any replacement blocks, this time character-by-character.
   // Add a dummy entry at the end.
-  diffs.push_back(Diff(EQUAL, L""));
+  diffs.push_back(Diff(Diff::Operation::Equal, L""));
   int count_delete = 0;
   int count_insert = 0;
   std::wstring text_delete = L"";
@@ -397,19 +392,19 @@ std::deque<Diff> diff_match_patch::diff_lineMode(std::wstring text1, std::wstrin
   // Diff *thisDiff = pointer.hasNext() ? &pointer.next() : NULL;
   while (thisDiff != diffs.end()) {
     switch (thisDiff->operation) {
-      case INSERT:
+      case Diff::Operation::Insert:
         count_insert++;
         text_insert += thisDiff->text;
         break;
-      case DELETE:
+      case Diff::Operation::Delete:
         count_delete++;
         text_delete += thisDiff->text;
         break;
-      case EQUAL:
+      case Diff::Operation::Equal:
         // Upon reaching an equality, check for prior redundancies.
         if (count_delete >= 1 && count_insert >= 1) {
           // Delete the offending records and add the merged ones.
-          auto& deleteBegin = std::prev(thisDiff, count_delete + count_insert);
+          auto deleteBegin = std::prev(thisDiff, count_delete + count_insert);
           int thisDiffIndex = deleteBegin - diffs.begin();
           diffs.erase(deleteBegin, thisDiff);
           // pointer.previous();
@@ -445,8 +440,8 @@ std::deque<Diff> diff_match_patch::diff_bisect(const std::wstring &text1,
   const int max_d = (text1_length + text2_length + 1) / 2;
   const int v_offset = max_d;
   const int v_length = 2 * max_d;
-  int *v1 = new int[v_length];
-  int *v2 = new int[v_length];
+  std::vector<int> v1(v_length);
+  std::vector<int> v2(v_length);
   for (int x = 0; x < v_length; x++) {
     v1[x] = -1;
     v2[x] = -1;
@@ -498,8 +493,6 @@ std::deque<Diff> diff_match_patch::diff_bisect(const std::wstring &text1,
           int x2 = text1_length - v2[k2_offset];
           if (x1 >= x2) {
             // Overlap detected.
-            delete [] v1;
-            delete [] v2;
             return diff_bisectSplit(text1, text2, x1, y1, deadline);
           }
         }
@@ -537,21 +530,17 @@ std::deque<Diff> diff_match_patch::diff_bisect(const std::wstring &text1,
           x2 = text1_length - x2;
           if (x1 >= x2) {
             // Overlap detected.
-            delete [] v1;
-            delete [] v2;
             return diff_bisectSplit(text1, text2, x1, y1, deadline);
           }
         }
       }
     }
   }
-  delete [] v1;
-  delete [] v2;
   // Diff took too long and hit the deadline or
   // number of diffs equals number of characters, no commonality at all.
   std::deque<Diff> diffs;
-  diffs.push_back(Diff(DELETE, text1));
-  diffs.push_back(Diff(INSERT, text2));
+  diffs.push_back(Diff(Diff::Operation::Delete, text1));
+  diffs.push_back(Diff(Diff::Operation::Insert, text2));
   return diffs;
 }
 
@@ -598,7 +587,7 @@ std::wstring diff_match_patch::diff_linesToCharsMunge(const std::wstring &text,
   // Walk the text, pulling out a substring for each line.
   // text.split('\n') would would temporarily double our memory footprint.
   // Modifying text would create many large strings to garbage collect.
-  while (lineEnd < text.length() - 1) {
+  while (lineEnd < (int)text.length() - 1) {
     lineEnd = text.find('\n', lineStart);
     if (lineEnd == -1) {
       lineEnd = text.length() - 1;
@@ -624,7 +613,7 @@ void diff_match_patch::diff_charsToLines(std::deque<Diff> &diffs,
   for (Diff &diff : diffs)
   {
     std::wstring text;
-    for (int y = 0; y < diff.text.length(); y++)
+    for (size_t y = 0; y < diff.text.length(); y++)
     {
       text += lineArray[static_cast<unsigned short>(diff.text[y])];
     }
@@ -780,7 +769,7 @@ void diff_match_patch::diff_cleanupSemantic(std::deque<Diff> &diffs) {
     return;
   }
   bool changes = false;
-  std::stack<Diff&> equalities;  // Stack of equalities.
+  std::stack<Diff> equalities;  // Stack of equalities.
   std::wstring lastequality;  // Always equal to equalities.lastElement().text
   // Number of characters that changed prior to the equality.
   int length_insertions1 = 0;
@@ -790,7 +779,7 @@ void diff_match_patch::diff_cleanupSemantic(std::deque<Diff> &diffs) {
   int length_deletions2 = 0;
   auto thisDiff = diffs.begin();
   while (thisDiff != diffs.end()) {
-    if (thisDiff->operation == EQUAL) {
+    if (thisDiff->operation == Diff::Operation::Equal) {
       // Equality found.
       equalities.push(*thisDiff);
       length_insertions1 = length_insertions2;
@@ -800,7 +789,7 @@ void diff_match_patch::diff_cleanupSemantic(std::deque<Diff> &diffs) {
       lastequality = thisDiff->text;
     } else {
       // An insertion or deletion.
-      if (thisDiff->operation == INSERT) {
+      if (thisDiff->operation == Diff::Operation::Insert) {
         length_insertions2 += thisDiff->text.length();
       } else {
         length_deletions2 += thisDiff->text.length();
@@ -817,12 +806,15 @@ void diff_match_patch::diff_cleanupSemantic(std::deque<Diff> &diffs) {
         while (*thisDiff != equalities.top()) {
           thisDiff--;
         }
-        thisDiff++;
 
         // Replace equality with a delete.
-        *thisDiff = Diff(DELETE, lastequality);
+        *thisDiff = Diff(Diff::Operation::Delete, lastequality);
         // Insert a corresponding an insert.
-        diffs.insert(thisDiff, Diff(INSERT, lastequality));
+        {
+          int thisDiffIndex = thisDiff - diffs.begin();
+          diffs.insert(thisDiff + 1, Diff(Diff::Operation::Insert, lastequality));
+          thisDiff = diffs.begin() + thisDiffIndex;
+        }
 
         equalities.pop();  // Throw away the equality we just deleted.
         if (!equalities.empty()) {
@@ -846,6 +838,8 @@ void diff_match_patch::diff_cleanupSemantic(std::deque<Diff> &diffs) {
         length_deletions2 = 0;
         lastequality = std::wstring();
         changes = true;
+
+        continue;
       }
     }
     thisDiff++;
@@ -863,14 +857,14 @@ void diff_match_patch::diff_cleanupSemantic(std::deque<Diff> &diffs) {
   // e.g: <del>xxxabc</del><ins>defxxx</ins>
   //   -> <ins>def</ins>xxx<del>abc</del>
   // Only extract an overlap if it is as big as the edit ahead or behind it.
-  if (diffs.size() > 2)
-    thisDiff = diffs.begin() + 2;
+  if (diffs.size() > 1)
+    thisDiff = diffs.begin() + 1;
   else
     thisDiff = diffs.end();
   while (thisDiff != diffs.end()) {
     auto prevDiff = thisDiff - 1;
-    if (prevDiff->operation == DELETE &&
-        thisDiff->operation == INSERT) {
+    if (prevDiff->operation == Diff::Operation::Delete &&
+        thisDiff->operation == Diff::Operation::Insert) {
       std::wstring deletion = prevDiff->text;
       std::wstring insertion = thisDiff->text;
       int overlap_length1 = diff_commonOverlap(deletion, insertion);
@@ -880,7 +874,7 @@ void diff_match_patch::diff_cleanupSemantic(std::deque<Diff> &diffs) {
             overlap_length1 >= insertion.length() / 2.0) {
           // Overlap found.  Insert an equality and trim the surrounding edits.
           int prevDiffIndex = prevDiff - diffs.begin();
-          diffs.insert(thisDiff, Diff(EQUAL, insertion.substr(0, overlap_length1)));
+          diffs.insert(thisDiff, Diff(Diff::Operation::Equal, insertion.substr(0, overlap_length1)));
           prevDiff = diffs.begin() + prevDiffIndex;
           thisDiff = prevDiff + 2;
           prevDiff->text =
@@ -895,13 +889,13 @@ void diff_match_patch::diff_cleanupSemantic(std::deque<Diff> &diffs) {
           // Reverse overlap found.
           // Insert an equality and swap and trim the surrounding edits.
           int prevDiffIndex = prevDiff - diffs.begin();
-          diffs.insert(thisDiff, Diff(EQUAL, deletion.substr(0, overlap_length2)));
+          diffs.insert(thisDiff, Diff(Diff::Operation::Equal, deletion.substr(0, overlap_length2)));
           prevDiff = diffs.begin() + prevDiffIndex;
           thisDiff = prevDiff + 2;
-          prevDiff->operation = INSERT;
+          prevDiff->operation = Diff::Operation::Insert;
           prevDiff->text =
               insertion.substr(0, insertion.length() - overlap_length2);
-          thisDiff->operation = DELETE;
+          thisDiff->operation = Diff::Operation::Delete;
           thisDiff->text = deletion.substr(overlap_length2);
           // pointer.insert inserts the element before the cursor, so there is
           // no need to step past the new element.
@@ -914,6 +908,8 @@ void diff_match_patch::diff_cleanupSemantic(std::deque<Diff> &diffs) {
 
 
 void diff_match_patch::diff_cleanupSemanticLossless(std::deque<Diff> &diffs) {
+  if (diffs.size() < 3)
+    return;
   std::wstring equality1, edit, equality2;
   std::wstring commonString;
   int commonOffset;
@@ -925,9 +921,9 @@ void diff_match_patch::diff_cleanupSemanticLossless(std::deque<Diff> &diffs) {
   // Intentionally ignore the first and last element (don't need checking).
   while (thisDiff + 1 != diffs.end()) {
     auto prevDiff = thisDiff - 1;
-    auto nextDiff = thisDiff - 1;
-    if (prevDiff->operation == EQUAL &&
-      nextDiff->operation == EQUAL) {
+    auto nextDiff = thisDiff + 1;
+    if (prevDiff->operation == Diff::Operation::Equal &&
+      nextDiff->operation == Diff::Operation::Equal) {
         // This is a single edit surrounded by equalities.
         equality1 = prevDiff->text;
         edit = thisDiff->text;
@@ -1003,8 +999,8 @@ int diff_match_patch::diff_cleanupSemanticScore(const std::wstring &one,
   // rather than force total conformity.
   wchar_t char1 = one[one.length() - 1];
   wchar_t char2 = two[0];
-  bool nonAlphaNumeric1 = std::iswalnum(char1);
-  bool nonAlphaNumeric2 = std::iswalnum(char2);
+  bool nonAlphaNumeric1 = !std::iswalnum(char1);
+  bool nonAlphaNumeric2 = !std::iswalnum(char2);
   bool whitespace1 = nonAlphaNumeric1 && std::iswspace(char1);
   bool whitespace2 = nonAlphaNumeric2 && std::iswspace(char2);
   bool lineBreak1 = whitespace1 && std::iswcntrl(char1);
@@ -1054,10 +1050,10 @@ void diff_match_patch::diff_cleanupEfficiency(std::deque<Diff> &diffs) {
   bool post_del = false;
 
   auto thisDiff = diffs.begin();
-  auto safeDiff = thisDiff;
+  Diff safeDiff = *thisDiff;
 
   while (thisDiff != diffs.end()) {
-    if (thisDiff->operation == EQUAL) {
+    if (thisDiff->operation == Diff::Operation::Equal) {
       // Equality found.
       if (thisDiff->text.length() < Diff_EditCost && (post_ins || post_del)) {
         // Candidate found.
@@ -1067,14 +1063,14 @@ void diff_match_patch::diff_cleanupEfficiency(std::deque<Diff> &diffs) {
         lastequality = thisDiff->text;
       } else {
         // Not a candidate, and can never become one.
-        equalities.swap(std::stack<Diff>());
+        std::stack<Diff>().swap(equalities);
         lastequality = std::wstring();
-        safeDiff = thisDiff;
+        safeDiff = *thisDiff;
       }
       post_ins = post_del = false;
     } else {
       // An insertion or deletion.
-      if (thisDiff->operation == DELETE) {
+      if (thisDiff->operation == Diff::Operation::Delete) {
         post_del = true;
       } else {
         post_ins = true;
@@ -1098,12 +1094,12 @@ void diff_match_patch::diff_cleanupEfficiency(std::deque<Diff> &diffs) {
           thisDiff--;
 
         // Replace equality with a delete.
-        *thisDiff = Diff(DELETE, lastequality);
+        *thisDiff = Diff(Diff::Operation::Delete, lastequality);
         thisDiff++;
         // Insert a corresponding an insert.
         {
           int thisDiffIndex = thisDiff - diffs.begin();
-          diffs.insert(thisDiff, Diff(INSERT, lastequality));
+          diffs.insert(thisDiff, Diff(Diff::Operation::Insert, lastequality));
           thisDiff = diffs.begin() + thisDiffIndex - 1;
         }
 
@@ -1112,8 +1108,8 @@ void diff_match_patch::diff_cleanupEfficiency(std::deque<Diff> &diffs) {
         if (pre_ins && pre_del) {
           // No changes made which could affect previous entry, keep going.
           post_ins = post_del = true;
-          equalities.swap(std::stack<Diff>());
-          safeDiff = thisDiff;
+          std::stack<Diff>().swap(equalities);
+          safeDiff = *thisDiff;
         } else {
           if (!equalities.empty()) {
             // Throw away the previous equality (it needs to be reevaluated).
@@ -1122,7 +1118,8 @@ void diff_match_patch::diff_cleanupEfficiency(std::deque<Diff> &diffs) {
           if (equalities.empty()) {
             // There are no previous questionable equalities,
             // walk back to the last known safe diff.
-            thisDiff = safeDiff;
+            while (*thisDiff != safeDiff)
+              thisDiff--;
           } else {
             // There is an equality we can fall back to.
             while (*thisDiff != equalities.top())
@@ -1132,6 +1129,7 @@ void diff_match_patch::diff_cleanupEfficiency(std::deque<Diff> &diffs) {
         }
 
         changes = true;
+        continue;
       }
     }
     thisDiff++;
@@ -1144,7 +1142,7 @@ void diff_match_patch::diff_cleanupEfficiency(std::deque<Diff> &diffs) {
 
 
 void diff_match_patch::diff_cleanupMerge(std::deque<Diff> &diffs) {
-  diffs.push_back(Diff(EQUAL, L""));  // Add a dummy entry at the end.
+  diffs.push_back(Diff(Diff::Operation::Equal, L""));  // Add a dummy entry at the end.
   int count_delete = 0;
   int count_insert = 0;
   std::wstring text_delete = L"";
@@ -1154,22 +1152,22 @@ void diff_match_patch::diff_cleanupMerge(std::deque<Diff> &diffs) {
   int commonlength;
   while (thisDiff != diffs.end()) {
     switch (thisDiff->operation) {
-      case INSERT:
+      case Diff::Operation::Insert:
         count_insert++;
         text_insert += thisDiff->text;
         prevEqual = diffs.end();
         break;
-      case DELETE:
+      case Diff::Operation::Delete:
         count_delete++;
         text_delete += thisDiff->text;
         prevEqual = diffs.end();
         break;
-      case EQUAL:
+      case Diff::Operation::Equal:
         if (count_delete + count_insert > 1) {
           bool both_types = count_delete != 0 && count_insert != 0;
           // Delete the offending records.
           {
-            auto& deleteBegin = std::prev(thisDiff, count_delete + count_insert);
+            auto deleteBegin = std::prev(thisDiff, count_delete + count_insert);
             int thisDiffIndex = deleteBegin - diffs.begin();
             diffs.erase(deleteBegin, thisDiff);
             thisDiff = diffs.begin() + thisDiffIndex;
@@ -1180,15 +1178,14 @@ void diff_match_patch::diff_cleanupMerge(std::deque<Diff> &diffs) {
             if (commonlength != 0) {
               if (thisDiff != diffs.begin()) {
                 thisDiff--;
-                if (thisDiff->operation != EQUAL) {
+                if (thisDiff->operation != Diff::Operation::Equal) {
                   throw "Previous diff should have been an equality.";
                 }
                 thisDiff->text += text_insert.substr(0, commonlength);
                 thisDiff++;
               } else {
-                int thisDiffIndex = thisDiff - diffs.begin();
-                diffs.insert(thisDiff, Diff(EQUAL, text_insert.substr(0, commonlength)));
-                thisDiff = diffs.begin() + thisDiffIndex;
+                diffs.insert(thisDiff, Diff(Diff::Operation::Equal, text_insert.substr(0, commonlength)));
+                thisDiff = diffs.begin() + 1;
               }
               text_insert = text_insert.substr(commonlength);
               text_delete = text_delete.substr(commonlength);
@@ -1204,13 +1201,13 @@ void diff_match_patch::diff_cleanupMerge(std::deque<Diff> &diffs) {
           // Insert the merged records.
           if (!text_delete.empty()) {
             int thisDiffIndex = thisDiff - diffs.begin();
-            diffs.insert(thisDiff, Diff(DELETE, text_delete));
-            thisDiff = diffs.begin() + thisDiffIndex;
+            diffs.insert(thisDiff, Diff(Diff::Operation::Delete, text_delete));
+            thisDiff = diffs.begin() + thisDiffIndex + 1;
           }
           if (!text_insert.empty()) {
             int thisDiffIndex = thisDiff - diffs.begin();
-            diffs.insert(thisDiff, Diff(INSERT, text_insert));
-            thisDiff = diffs.begin() + thisDiffIndex;
+            diffs.insert(thisDiff, Diff(Diff::Operation::Insert, text_insert));
+            thisDiff = diffs.begin() + thisDiffIndex + 1;
           }
         } else if (prevEqual != diffs.end()) {
           // Merge this equality with the previous one.
@@ -1245,15 +1242,16 @@ void diff_match_patch::diff_cleanupMerge(std::deque<Diff> &diffs) {
     thisDiff = diffs.begin() + 1;
 
     // Intentionally ignore the first and last element (don't need checking).
-    while (thisDiff + 1 != diffs.end())
+    while (thisDiff != diffs.end() && thisDiff + 1 != diffs.end())
     {
       auto prevDiff = thisDiff - 1;
       auto nextDiff = thisDiff + 1;
-      if (prevDiff->operation == EQUAL &&
-          nextDiff->operation == EQUAL)
+      if (prevDiff->operation == Diff::Operation::Equal &&
+          nextDiff->operation == Diff::Operation::Equal)
       {
         // This is a single edit surrounded by equalities.
-        if (thisDiff->text.compare(thisDiff->text.length() - prevDiff->text.length(), prevDiff->text.length(), prevDiff->text))
+        if (thisDiff->text.length() > prevDiff->text.length() &&
+          thisDiff->text.compare(thisDiff->text.length() - prevDiff->text.length(), prevDiff->text.length(), prevDiff->text) == 0)
         {
           // Shift the edit over the previous equality.
           thisDiff->text = prevDiff->text + thisDiff->text.substr(0, thisDiff->text.length() - prevDiff->text.length());
@@ -1263,7 +1261,7 @@ void diff_match_patch::diff_cleanupMerge(std::deque<Diff> &diffs) {
           thisDiff = diffs.begin() + thisDiffIndex;
           changes = true;
         }
-        else if (thisDiff->text.compare(0, nextDiff->text.length(), nextDiff->text))
+        else if (thisDiff->text.compare(0, nextDiff->text.length(), nextDiff->text) == 0)
         {
           // Shift the edit over the next equality.
           prevDiff->text += nextDiff->text;
@@ -1274,7 +1272,8 @@ void diff_match_patch::diff_cleanupMerge(std::deque<Diff> &diffs) {
           changes = true;
         }
       }
-      thisDiff++;
+      if (thisDiff != diffs.end())
+        thisDiff++;
     }
   }
   // If shifts were made, the diff needs reordering and another shift sweep.
@@ -1291,11 +1290,11 @@ int diff_match_patch::diff_xIndex(const std::deque<Diff> &diffs, int loc) {
   int last_chars2 = 0;
   Diff lastDiff;
   for (const Diff& aDiff : diffs) {
-    if (aDiff.operation != INSERT) {
+    if (aDiff.operation != Diff::Operation::Insert) {
       // Equality or deletion.
       chars1 += aDiff.text.length();
     }
-    if (aDiff.operation != DELETE) {
+    if (aDiff.operation != Diff::Operation::Delete) {
       // Equality or insertion.
       chars2 += aDiff.text.length();
     }
@@ -1307,7 +1306,7 @@ int diff_match_patch::diff_xIndex(const std::deque<Diff> &diffs, int loc) {
     last_chars1 = chars1;
     last_chars2 = chars2;
   }
-  if (lastDiff.operation == DELETE) {
+  if (lastDiff.operation == Diff::Operation::Delete) {
     // The location was deleted.
     return last_chars2;
   }
@@ -1324,17 +1323,17 @@ std::wstring diff_match_patch::diff_prettyHtml(const std::deque<Diff> &diffs) {
     text = std::regex_replace(text, std::wregex(L"&"), L"&amp;");
     text = std::regex_replace(text, std::wregex(L"<"), L"&lt;");
     text = std::regex_replace(text, std::wregex(L">"), L"&gt;");
-    text = std::regex_replace(text, std::wregex(L"\\n"), L"&para;");
+    text = std::regex_replace(text, std::wregex(L"\\n"), L"&para;<br>");
     switch (aDiff.operation) {
-      case INSERT:
+      case Diff::Operation::Insert:
         html += std::wstring(L"<ins style=\"background:#e6ffe6;\">") + text
             + std::wstring(L"</ins>");
         break;
-      case DELETE:
+      case Diff::Operation::Delete:
         html += std::wstring(L"<del style=\"background:#ffe6e6;\">") + text
             + std::wstring(L"</del>");
         break;
-      case EQUAL:
+      case Diff::Operation::Equal:
         html += std::wstring(L"<span>") + text + std::wstring(L"</span>");
         break;
     }
@@ -1346,7 +1345,7 @@ std::wstring diff_match_patch::diff_prettyHtml(const std::deque<Diff> &diffs) {
 std::wstring diff_match_patch::diff_text1(const std::deque<Diff> &diffs) {
   std::wstring text;
   for (const Diff& aDiff : diffs) {
-    if (aDiff.operation != INSERT) {
+    if (aDiff.operation != Diff::Operation::Insert) {
       text += aDiff.text;
     }
   }
@@ -1357,7 +1356,7 @@ std::wstring diff_match_patch::diff_text1(const std::deque<Diff> &diffs) {
 std::wstring diff_match_patch::diff_text2(const std::deque<Diff> &diffs) {
   std::wstring text;
   for (const Diff& aDiff : diffs) {
-    if (aDiff.operation != DELETE) {
+    if (aDiff.operation != Diff::Operation::Delete) {
       text += aDiff.text;
     }
   }
@@ -1371,13 +1370,13 @@ int diff_match_patch::diff_levenshtein(const std::deque<Diff> &diffs) {
   int deletions = 0;
   for (const Diff& aDiff : diffs) {
     switch (aDiff.operation) {
-      case INSERT:
+      case Diff::Operation::Insert:
         insertions += aDiff.text.length();
         break;
-      case DELETE:
+      case Diff::Operation::Delete:
         deletions += aDiff.text.length();
         break;
-      case EQUAL:
+      case Diff::Operation::Equal:
         // A deletion and an insertion is one substitution.
         levenshtein += std::max(insertions, deletions);
         insertions = 0;
@@ -1394,16 +1393,16 @@ std::wstring diff_match_patch::diff_toDelta(const std::deque<Diff> &diffs) {
   std::wstring text;
   for (const Diff& aDiff : diffs) {
     switch (aDiff.operation) {
-      case INSERT: {
+      case Diff::Operation::Insert: {
         std::wstring encoded = std::wstring(toPercentEncoding(aDiff.text, " !~*'();/?:@&=+$,#"));
         text += std::wstring(L"+") + encoded + std::wstring(L"\t");
         break;
       }
-      case DELETE:
+      case Diff::Operation::Delete:
         text += std::wstring(L"-") + std::to_wstring(aDiff.text.length())
             + std::wstring(L"\t");
         break;
-      case EQUAL:
+      case Diff::Operation::Equal:
         text += std::wstring(L"=") + std::to_wstring(aDiff.text.length())
             + std::wstring(L"\t");
         break;
@@ -1440,7 +1439,7 @@ std::deque<Diff> diff_match_patch::diff_fromDelta(const std::wstring &text1,
     switch (token[0]) {
       case L'+':
         param = fromPercentEncoding(param);
-        diffs.push_back(Diff(INSERT, param));
+        diffs.push_back(Diff(Diff::Operation::Insert, param));
         break;
       case L'-':
         // Fall through.
@@ -1448,24 +1447,24 @@ std::deque<Diff> diff_match_patch::diff_fromDelta(const std::wstring &text1,
         int n;
         n = std::stoi(param);
         if (n < 0) {
-          throw (std::wstringstream(L"Negative number in diff_fromDelta: ") << param).str();
+          throw static_cast<std::wstringstream &>(std::wstringstream(L"Negative number in diff_fromDelta: ").flush() << param).str();
         }
         std::wstring text;
         text = text1.substr(pointer, n);
         pointer += n;
         if (token[0] == wchar_t('=')) {
-          diffs.push_back(Diff(EQUAL, text));
+          diffs.push_back(Diff(Diff::Operation::Equal, text));
         } else {
-          diffs.push_back(Diff(DELETE, text));
+          diffs.push_back(Diff(Diff::Operation::Delete, text));
         }
         break;
       }
       default:
-        throw (std::wstringstream(L"Invalid diff operation in diff_fromDelta: ") << token[0]).str();
+        throw static_cast<std::wstringstream &>(std::wstringstream(L"Invalid diff operation in diff_fromDelta: ").flush() << token[0]).str();
     }
   }
   if (pointer != text1.length()) {
-    throw (std::wstringstream(L"Delta length (") << pointer << L") smaller than source text length (" << text1.length() << L")").str();
+    throw static_cast<std::wstringstream &>(std::wstringstream(L"Delta length (").flush() << pointer << L") smaller than source text length (" << text1.length() << L")").str();
   }
   return diffs;
 }
@@ -1475,12 +1474,8 @@ std::deque<Diff> diff_match_patch::diff_fromDelta(const std::wstring &text1,
 
 
 int diff_match_patch::match_main(const std::wstring &text, const std::wstring &pattern,
-                                 int loc) {
-  // Check for null inputs.
-  if (text.empty() || pattern.empty()) {
-    throw "Null inputs. (match_main)";
-  }
-
+                                 int loc)
+{
   loc = std::max((size_t)0, std::min((size_t)loc, text.length()));
   if (text == pattern) {
     // Shortcut (potentially not guaranteed by the algorithm)
@@ -1516,7 +1511,7 @@ int diff_match_patch::match_bitap(const std::wstring &text, const std::wstring &
     score_threshold = std::min(match_bitapScore(0, best_loc, loc, pattern),
         score_threshold);
     // What about in the other direction? (speedup)
-    best_loc = text.find_last_of(pattern, loc + pattern.length());
+    best_loc = text.rfind(pattern, loc + pattern.length());
     if (best_loc != -1) {
       score_threshold = std::min(match_bitapScore(0, best_loc, loc, pattern),
           score_threshold);
@@ -1620,7 +1615,7 @@ std::map<wchar_t, int> diff_match_patch::match_alphabet(const std::wstring &patt
   }
   for (i = 0; i < pattern.length(); i++) {
     wchar_t c = pattern[i];
-    s.emplace(c, s[c] | (1 << (pattern.length() - i - 1)));
+    s[c] |= (1 << (pattern.length() - i - 1));
   }
   return s;
 }
@@ -1638,7 +1633,7 @@ void diff_match_patch::patch_addContext(Patch &patch, const std::wstring &text) 
 
   // Look for the first and last matches of pattern in text.  If two different
   // matches are found, increase the pattern length.
-  while (text.find(pattern) != text.find_last_of(pattern)
+  while (text.find(pattern) != text.rfind(pattern)
       && pattern.length() < Match_MaxBits - Patch_Margin - Patch_Margin) {
     padding += Patch_Margin;
     pattern = text.substr(std::max(0, patch.start2 - padding),
@@ -1652,14 +1647,14 @@ void diff_match_patch::patch_addContext(Patch &patch, const std::wstring &text) 
   std::wstring prefix = text.substr(std::max(0, patch.start2 - padding),
       patch.start2 - std::max(0, patch.start2 - padding));
   if (!prefix.empty()) {
-    patch.diffs.push_front(Diff(EQUAL, prefix));
+    patch.diffs.push_front(Diff(Diff::Operation::Equal, prefix));
   }
   // Add the suffix.
   std::wstring suffix = text.substr(patch.start2 + patch.length1,
       std::min(text.length(), (size_t)patch.start2 + patch.length1 + padding)
       - (patch.start2 + patch.length1));
   if (!suffix.empty()) {
-    patch.diffs.push_back(Diff(EQUAL, suffix));
+    patch.diffs.push_back(Diff(Diff::Operation::Equal, suffix));
   }
 
   // Roll back the start points.
@@ -1672,12 +1667,8 @@ void diff_match_patch::patch_addContext(Patch &patch, const std::wstring &text) 
 
 
 std::deque<Patch> diff_match_patch::patch_make(const std::wstring &text1,
-                                          const std::wstring &text2) {
-  // Check for null inputs.
-  if (text1.empty() || text2.empty()) {
-    throw "Null inputs. (patch_make)";
-  }
-
+                                          const std::wstring &text2)
+{
   // No diffs provided, compute our own.
   std::deque<Diff> diffs = diff_main(text1, text2, true);
   if (diffs.size() > 2) {
@@ -1706,12 +1697,8 @@ std::deque<Patch> diff_match_patch::patch_make(const std::wstring &text1,
 
 
 std::deque<Patch> diff_match_patch::patch_make(const std::wstring &text1,
-                                          const std::deque<Diff> &diffs) {
-  // Check for null inputs.
-  if (text1.empty()) {
-    throw "Null inputs. (patch_make)";
-  }
-
+                                          const std::deque<Diff> &diffs)
+{
   std::deque<Patch> patches;
   if (diffs.empty()) {
     return patches;  // Get rid of the null case.
@@ -1725,25 +1712,25 @@ std::deque<Patch> diff_match_patch::patch_make(const std::wstring &text1,
   std::wstring prepatch_text = text1;
   std::wstring postpatch_text = text1;
   for (const Diff& aDiff : diffs) {
-    if (patch.diffs.empty() && aDiff.operation != EQUAL) {
+    if (patch.diffs.empty() && aDiff.operation != Diff::Operation::Equal) {
       // A new patch starts here.
       patch.start1 = char_count1;
       patch.start2 = char_count2;
     }
 
     switch (aDiff.operation) {
-      case INSERT:
+      case Diff::Operation::Insert:
         patch.diffs.push_back(aDiff);
         patch.length2 += aDiff.text.length();
         postpatch_text = postpatch_text.substr(0, char_count2)
             + aDiff.text + postpatch_text.substr(char_count2);
         break;
-      case DELETE:
+      case Diff::Operation::Delete:
         patch.length1 += aDiff.text.length();
         patch.diffs.push_back(aDiff);
         postpatch_text = postpatch_text.substr(0, char_count2) + postpatch_text.substr(char_count2 + aDiff.text.length());
         break;
-      case EQUAL:
+      case Diff::Operation::Equal:
         if (aDiff.text.length() <= 2 * Patch_Margin
             && !patch.diffs.empty() && !(aDiff == diffs.back())) {
           // Small equality inside a patch.
@@ -1770,10 +1757,10 @@ std::deque<Patch> diff_match_patch::patch_make(const std::wstring &text1,
     }
 
     // Update the current character count.
-    if (aDiff.operation != INSERT) {
+    if (aDiff.operation != Diff::Operation::Insert) {
       char_count1 += aDiff.text.length();
     }
-    if (aDiff.operation != DELETE) {
+    if (aDiff.operation != Diff::Operation::Delete) {
       char_count2 += aDiff.text.length();
     }
   }
@@ -1878,19 +1865,19 @@ std::pair<std::wstring, std::deque<bool>> diff_match_patch::patch_apply(
           diff_cleanupSemanticLossless(diffs);
           int index1 = 0;
           for (const Diff& aDiff : aPatch.diffs) {
-            if (aDiff.operation != EQUAL) {
+            if (aDiff.operation != Diff::Operation::Equal) {
               int index2 = diff_xIndex(diffs, index1);
-              if (aDiff.operation == INSERT) {
+              if (aDiff.operation == Diff::Operation::Insert) {
                 // Insertion
                 text = text.substr(0, start_loc + index2) + aDiff.text
                     + text.substr(start_loc + index2);
-              } else if (aDiff.operation == DELETE) {
+              } else if (aDiff.operation == Diff::Operation::Delete) {
                 // Deletion
                 text = text.substr(0, start_loc + index2)
                     + text.substr(start_loc + diff_xIndex(diffs, index1 + aDiff.text.length()));
               }
             }
-            if (aDiff.operation != DELETE) {
+            if (aDiff.operation != Diff::Operation::Delete) {
               index1 += aDiff.text.length();
             }
           }
@@ -1922,9 +1909,9 @@ std::wstring diff_match_patch::patch_addPadding(std::deque<Patch> &patches) {
   // Add some padding on start of first diff.
   Patch &firstPatch = patches.front();
   std::deque<Diff> &firstPatchDiffs = firstPatch.diffs;
-  if (firstPatchDiffs.empty() || firstPatchDiffs.front().operation != EQUAL) {
+  if (firstPatchDiffs.empty() || firstPatchDiffs.front().operation != Diff::Operation::Equal) {
     // Add nullPadding equality.
-    firstPatchDiffs.push_front(Diff(EQUAL, nullPadding));
+    firstPatchDiffs.push_front(Diff(Diff::Operation::Equal, nullPadding));
     firstPatch.start1 -= paddingLength;  // Should be 0.
     firstPatch.start2 -= paddingLength;  // Should be 0.
     firstPatch.length1 += paddingLength;
@@ -1943,9 +1930,9 @@ std::wstring diff_match_patch::patch_addPadding(std::deque<Patch> &patches) {
   // Add some padding on end of last diff.
   Patch &lastPatch = patches.front();
   std::deque<Diff> &lastPatchDiffs = lastPatch.diffs;
-  if (lastPatchDiffs.empty() || lastPatchDiffs.back().operation != EQUAL) {
+  if (lastPatchDiffs.empty() || lastPatchDiffs.back().operation != Diff::Operation::Equal) {
     // Add nullPadding equality.
-    lastPatchDiffs.push_back(Diff(EQUAL, nullPadding));
+    lastPatchDiffs.push_back(Diff(Diff::Operation::Equal, nullPadding));
     lastPatch.length1 += paddingLength;
     lastPatch.length2 += paddingLength;
   } else if (paddingLength > lastPatchDiffs.back().text.length()) {
@@ -1967,14 +1954,9 @@ void diff_match_patch::patch_splitMax(std::deque<Patch> &patches) {
   Patch patch;
   int start1, start2;
   bool empty;
-  Operation diff_type;
+  Diff::Operation diff_type;
   std::wstring diff_text;
   auto pointer = patches.begin();
-  Patch bigpatch;
-
-  if (pointer != patches.end()) {
-    bigpatch = *pointer;
-  }
 
   while (pointer != patches.end() && !pointer->empty()) {
     Patch bigpatch = *pointer;
@@ -1999,21 +1981,21 @@ void diff_match_patch::patch_splitMax(std::deque<Patch> &patches) {
       patch.start2 = start2 - precontext.length();
       if (!precontext.empty()) {
         patch.length1 = patch.length2 = precontext.length();
-        patch.diffs.push_back(Diff(EQUAL, precontext));
+        patch.diffs.push_back(Diff(Diff::Operation::Equal, precontext));
       }
       while (!bigpatch.diffs.empty()
           && patch.length1 < patch_size - Patch_Margin) {
         diff_type = bigpatch.diffs.front().operation;
         diff_text = bigpatch.diffs.front().text;
-        if (diff_type == INSERT) {
+        if (diff_type == Diff::Operation::Insert) {
           // Insertions are harmless.
           patch.length2 += diff_text.length();
           start2 += diff_text.length();
           patch.diffs.push_back(bigpatch.diffs.front());
           bigpatch.diffs.pop_front();
           empty = false;
-        } else if (diff_type == DELETE && patch.diffs.size() == 1
-            && patch.diffs.front().operation == EQUAL
+        } else if (diff_type == Diff::Operation::Delete && patch.diffs.size() == 1
+            && patch.diffs.front().operation == Diff::Operation::Equal
             && diff_text.length() > 2 * patch_size) {
           // This is a large deletion.  Let it pass in one chunk.
           patch.length1 += diff_text.length();
@@ -2026,7 +2008,7 @@ void diff_match_patch::patch_splitMax(std::deque<Patch> &patches) {
           diff_text = diff_text.substr(0, std::min(diff_text.length(), (size_t)patch_size - patch.length1 - Patch_Margin));
           patch.length1 += diff_text.length();
           start1 += diff_text.length();
-          if (diff_type == EQUAL) {
+          if (diff_type == Diff::Operation::Equal) {
             patch.length2 += diff_text.length();
             start2 += diff_text.length();
           } else {
@@ -2042,7 +2024,7 @@ void diff_match_patch::patch_splitMax(std::deque<Patch> &patches) {
       }
       // Compute the head context for the next patch.
       precontext = diff_text2(patch.diffs);
-      precontext = precontext.substr(precontext.length() - Patch_Margin);
+      precontext = precontext.substr(std::min(precontext.length() - Patch_Margin, precontext.length()));
       // Append the end context for this patch.
       if (diff_text1(bigpatch.diffs).length() > Patch_Margin) {
         postcontext = diff_text1(bigpatch.diffs).substr(0, Patch_Margin);
@@ -2053,19 +2035,18 @@ void diff_match_patch::patch_splitMax(std::deque<Patch> &patches) {
         patch.length1 += postcontext.length();
         patch.length2 += postcontext.length();
         if (!patch.diffs.empty()
-            && patch.diffs.back().operation == EQUAL) {
+            && patch.diffs.back().operation == Diff::Operation::Equal) {
           patch.diffs.back().text += postcontext;
         } else {
-          patch.diffs.push_back(Diff(EQUAL, postcontext));
+          patch.diffs.push_back(Diff(Diff::Operation::Equal, postcontext));
         }
       }
       if (!empty) {
         int pointerIndex = pointer - patches.begin();
         patches.insert(pointer, patch);
-        pointer = patches.begin() + pointerIndex;
+        pointer = patches.begin() + pointerIndex + 1;
       }
     }
-    pointer++;
   }
 }
 
@@ -2099,7 +2080,7 @@ std::deque<Patch> diff_match_patch::patch_fromText(const std::wstring &textline)
   while (!text.empty()) {
     std::wsmatch captures;
     if (!std::regex_match(text.front(), captures, patchHeader)) {
-      throw (std::wstringstream(L"Invalid patch string: ") << text.front()).str();
+      throw static_cast<std::wstringstream &>(std::wstringstream(L"Invalid patch string: ").flush() << text.front()).str();
     }
 
     patch = Patch();
@@ -2133,23 +2114,23 @@ std::deque<Patch> diff_match_patch::patch_fromText(const std::wstring &textline)
       }
       sign = text.front()[0];
       line = text.front().substr(1);
-      line = std::regex_replace(line, std::wregex(L"+"), L"%2B");  // decode would change all "+" to " "
+      line = std::regex_replace(line, std::wregex(L"\\+"), L"%2B");  // decode would change all "+" to " "
       line = fromPercentEncoding(line);
       if (sign == L'-') {
         // Deletion.
-        patch.diffs.push_back(Diff(DELETE, line));
+        patch.diffs.push_back(Diff(Diff::Operation::Delete, line));
       } else if (sign == L'+') {
         // Insertion.
-        patch.diffs.push_back(Diff(INSERT, line));
+        patch.diffs.push_back(Diff(Diff::Operation::Insert, line));
       } else if (sign == L' ') {
         // Minor equality.
-        patch.diffs.push_back(Diff(EQUAL, line));
+        patch.diffs.push_back(Diff(Diff::Operation::Equal, line));
       } else if (sign == L'@') {
         // Start of next patch.
         break;
       } else {
         // WTF?
-        throw (std::wstringstream() << L"Invalid patch mode '" << sign << L"' in: " << line).str();
+        throw static_cast<std::wstringstream &>(std::wstringstream().flush() << L"Invalid patch mode '" << sign << L"' in: " << line).str();
         return std::deque<Patch>();
       }
       text.pop_front();
