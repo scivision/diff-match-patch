@@ -1,17 +1,5 @@
-
-*.class
-*.exe
-*.pyc
-*.komodoproject
 *.bak
 *~
 
-.DS_STORE
-xcuserdata
-
-dart/tests/Speedtest.dart.js.deps
-dart/tests/Speedtest.dart.js.map
-
-*/.vscode
 build/
 Build/
