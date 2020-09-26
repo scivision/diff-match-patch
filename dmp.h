@@ -34,8 +34,6 @@
  *
  * Qt/C++ port by mikeslemmer@gmail.com (Mike Slemmer):
  *
- * Code known to compile and run with Qt 4.3 through Qt 4.7.
- *
  * Here is a trivial sample program which works properly when linked with this
  * library:
  *

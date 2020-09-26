@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-// Code known to compile and run with Qt 4.3 through Qt 4.7.
-#include <Timer.h>
-#include "diff_match_patch.h"
-#include "diff_match_patch_test.h"
+#include "Timer.h"
+#include "dmp.h"
+#include "dmp_test.h"
 
 static inline void ResetOutputStream()
 {
@@ -31,18 +30,15 @@ static inline void ResetOutputStream()
 #endif
 }
 
-#define qDebug(...) ResetOutputStream(); wprintf(__VA_ARGS__); wprintf(L"\n");
-#define Q_UNUSED(x) x;
-#define qPrintable(x) x.c_str()
+#define dmpDebug(...) ResetOutputStream(); wprintf(__VA_ARGS__); wprintf(L"\n");
+#define dmpPrintable(x) x.c_str()
 
 int main(int argc, char **argv) {
   diff_match_patch_test dmp_test;
-  qDebug(L"Starting diff_match_patch unit tests.");
+  dmpDebug(L"Starting diff_match_patch unit tests.");
   dmp_test.run_all_tests();
-  qDebug(L"Done.");
+  dmpDebug(L"Done.");
   return 0;
-  Q_UNUSED(argc)
-  Q_UNUSED(argv)
 }
 
 
@@ -112,12 +108,12 @@ void diff_match_patch_test::run_all_tests() {
     testPatchSplitMax();
     testPatchAddPadding();
     testPatchApply();
-    qDebug(L"All tests passed.");
+    dmpDebug(L"All tests passed.");
   } catch (std::wstring strCase) {
-    qDebug(L"Test failed: %ls", qPrintable(strCase));
+    dmpDebug(L"Test failed: %ls", dmpPrintable(strCase));
   }
   t.Stop();
-  qDebug(L"Total time: %f ms", t.Milliseconds());
+  dmpDebug(L"Total time: %f ms", t.Milliseconds());
 }
 
 //  DIFF TEST FUNCTIONS
@@ -940,28 +936,28 @@ void diff_match_patch_test::testPatchApply() {
 
 void diff_match_patch_test::assertEquals(const std::wstring &strCase, int n1, int n2) {
   if (n1 != n2) {
-    qDebug(L"%ls FAIL\nExpected: %d\nActual: %d", qPrintable(strCase), n1, n2);
+    dmpDebug(L"%ls FAIL\nExpected: %d\nActual: %d", dmpPrintable(strCase), n1, n2);
     throw strCase;
   }
-  qDebug(L"%ls OK", qPrintable(strCase));
+  dmpDebug(L"%ls OK", dmpPrintable(strCase));
 }
 
 void diff_match_patch_test::assertEquals(const std::wstring &strCase, const std::wstring &s1, const std::wstring &s2) {
   if (s1 != s2) {
-    qDebug(L"%ls FAIL\nExpected: %ls\nActual: %ls",
-           qPrintable(strCase), qPrintable(s1), qPrintable(s2));
+    dmpDebug(L"%ls FAIL\nExpected: %ls\nActual: %ls",
+           dmpPrintable(strCase), dmpPrintable(s1), dmpPrintable(s2));
     throw strCase;
   }
-  qDebug(L"%ls OK", qPrintable(strCase));
+  dmpDebug(L"%ls OK", dmpPrintable(strCase));
 }
 
 void diff_match_patch_test::assertEquals(const std::wstring &strCase, const Diff &d1, const Diff &d2) {
   if (d1 != d2) {
-    qDebug(L"%ls FAIL\nExpected: %ls\nActual: %ls", qPrintable(strCase),
-        qPrintable(d1.toString()), qPrintable(d2.toString()));
+    dmpDebug(L"%ls FAIL\nExpected: %ls\nActual: %ls", dmpPrintable(strCase),
+        dmpPrintable(d1.toString()), dmpPrintable(d2.toString()));
     throw strCase;
   }
-  qDebug(L"%ls OK", qPrintable(strCase));
+  dmpDebug(L"%ls OK", dmpPrintable(strCase));
 }
 
 void diff_match_patch_test::assertEquals(const std::wstring &strCase, const std::deque<Diff> &list1, const std::deque<Diff> &list2) {
@@ -1002,11 +998,11 @@ void diff_match_patch_test::assertEquals(const std::wstring &strCase, const std:
       first = false;
     }
     listString2 += L")";
-    qDebug(L"%ls FAIL\nExpected: %ls\nActual: %ls",
-        qPrintable(strCase), qPrintable(listString1), qPrintable(listString2));
+    dmpDebug(L"%ls FAIL\nExpected: %ls\nActual: %ls",
+        dmpPrintable(strCase), dmpPrintable(listString1), dmpPrintable(listString2));
     throw strCase;
   }
-  qDebug(L"%ls OK", qPrintable(strCase));
+  dmpDebug(L"%ls OK", dmpPrintable(strCase));
 }
 
 // void diff_match_patch_test::assertEquals(const std::wstring &strCase, const std::deque<QVariant> &list1, const std::deque<QVariant> &list2) {
@@ -1047,20 +1043,20 @@ void diff_match_patch_test::assertEquals(const std::wstring &strCase, const std:
 //       first = false;
 //     }
 //     listString2 += L")";
-//     qDebug(L"%ls FAIL\nExpected: %ls\nActual: %ls",
-//         qPrintable(strCase), qPrintable(listString1), qPrintable(listString2));
+//     dmpDebug(L"%ls FAIL\nExpected: %ls\nActual: %ls",
+//         dmpPrintable(strCase), dmpPrintable(listString1), dmpPrintable(listString2));
 //     throw strCase;
 //   }
-//   qDebug(L"%ls OK", qPrintable(strCase));
+//   dmpDebug(L"%ls OK", dmpPrintable(strCase));
 // }
 
 // void diff_match_patch_test::assertEquals(const std::wstring &strCase, const QVariant &var1, const QVariant &var2) {
 //   if (var1 != var2) {
-//     qDebug(L"%ls FAIL\nExpected: %ls\nActual: %ls", qPrintable(strCase),
-//         qPrintable(var1.toString()), qPrintable(var2.toString()));
+//     dmpDebug(L"%ls FAIL\nExpected: %ls\nActual: %ls", dmpPrintable(strCase),
+//         dmpPrintable(var1.toString()), dmpPrintable(var2.toString()));
 //     throw strCase;
 //   }
-//   qDebug(L"%ls OK", qPrintable(strCase));
+//   dmpDebug(L"%ls OK", dmpPrintable(strCase));
 // }
 
 void diff_match_patch_test::assertEquals(const std::wstring &strCase, const std::map<wchar_t, int> &m1, const std::map<wchar_t, int> &m2) {
@@ -1069,7 +1065,7 @@ void diff_match_patch_test::assertEquals(const std::wstring &strCase, const std:
 
   while (i1 != m1.end() && i2 != m2.end()) {
     if (i1->first != i2->first || i1->second != i2->second) {
-      qDebug(L"%ls FAIL\nExpected: (%lc, %d)\nActual: (%lc, %d)", qPrintable(strCase),
+      dmpDebug(L"%ls FAIL\nExpected: (%lc, %d)\nActual: (%lc, %d)", dmpPrintable(strCase),
           i1->first, i1->second, i2->first, i2->second);
       throw strCase;
     }
@@ -1078,41 +1074,41 @@ void diff_match_patch_test::assertEquals(const std::wstring &strCase, const std:
   }
 
   if (i1 != m1.end()) {
-    qDebug(L"%ls FAIL\nExpected: (%lc, %d)\nActual: none",
-        qPrintable(strCase), i1->first, i1->second);
+    dmpDebug(L"%ls FAIL\nExpected: (%lc, %d)\nActual: none",
+        dmpPrintable(strCase), i1->first, i1->second);
     throw strCase;
   }
   if (i2 != m2.end()) {
-    qDebug(L"%ls FAIL\nExpected: none\nActual: (%lc, %d)",
-        qPrintable(strCase), i2->first, i2->second);
+    dmpDebug(L"%ls FAIL\nExpected: none\nActual: (%lc, %d)",
+        dmpPrintable(strCase), i2->first, i2->second);
     throw strCase;
   }
-  qDebug(L"%ls OK", qPrintable(strCase));
+  dmpDebug(L"%ls OK", dmpPrintable(strCase));
 }
 
 void diff_match_patch_test::assertEquals(const std::wstring &strCase, const std::deque<std::wstring> &list1, const std::deque<std::wstring> &list2) {
   if (list1 != list2) {
-    qDebug(L"%ls FAIL\nExpected: %ls\nActual: %ls", qPrintable(strCase),
-        qPrintable(join(list1, L",")), qPrintable(join(list2, L",")));
+    dmpDebug(L"%ls FAIL\nExpected: %ls\nActual: %ls", dmpPrintable(strCase),
+        dmpPrintable(join(list1, L",")), dmpPrintable(join(list2, L",")));
     throw strCase;
   }
-  qDebug(L"%ls OK", qPrintable(strCase));
+  dmpDebug(L"%ls OK", dmpPrintable(strCase));
 }
 
 void diff_match_patch_test::assertTrue(const std::wstring &strCase, bool value) {
   if (!value) {
-    qDebug(L"%ls FAIL\nExpected: true\nActual: false", qPrintable(strCase));
+    dmpDebug(L"%ls FAIL\nExpected: true\nActual: false", dmpPrintable(strCase));
     throw strCase;
   }
-  qDebug(L"%ls OK", qPrintable(strCase));
+  dmpDebug(L"%ls OK", dmpPrintable(strCase));
 }
 
 void diff_match_patch_test::assertFalse(const std::wstring &strCase, bool value) {
   if (value) {
-    qDebug(L"%ls FAIL\nExpected: false\nActual: true", qPrintable(strCase));
+    dmpDebug(L"%ls FAIL\nExpected: false\nActual: true", dmpPrintable(strCase));
     throw strCase;
   }
-  qDebug(L"%ls OK", qPrintable(strCase));
+  dmpDebug(L"%ls OK", dmpPrintable(strCase));
 }
 
 
@@ -1198,16 +1194,3 @@ std::deque<Diff> diff_match_patch_test::diffList(Diff d1, Diff d2, Diff d3, Diff
 }
 
 
-/*
-Compile instructions for MinGW and QT4 on Windows:
-qmake -project
-qmake
-mingw32-make
-g++ -o diff_match_patch_test debug\diff_match_patch_test.o debug\diff_match_patch.o \qt4\lib\libQtCore4.a
-diff_match_patch_test.exe
-
-Compile insructions for OS X:
-qmake -spec macx-g++
-make
-./diff_match_patch
-*/

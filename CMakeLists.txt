@@ -1,10 +1,20 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
+cmake_minimum_required(VERSION 3.1)
+
+project(DMP)
+
+add_definitions(-DNOMINMAX)
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 project(diff-match-patch)
 
-ADD_DEFINITIONS(-DNOMINMAX)
+set(DMP_SRCS
+	dmp.cpp
+	dmp.h
+	)
 
-SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS ON)
+add_library(dmp SHARED ${DMP_SRCS})
+target_include_directories(dmp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-ADD_SUBDIRECTORY(cpp)
-ADD_SUBDIRECTORY(cpp-tests)
+enable_testing()
+add_subdirectory(tests)

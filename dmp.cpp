@@ -25,9 +25,8 @@
 #include <sstream>
 #include <stack>
 #include <tuple>
-// Code known to compile and run with Qt 4.3 through Qt 4.7.
 #include <time.h>
-#include "diff_match_patch.h"
+#include "./dmp.h"
 
 static inline std::string ToUTF8(const std::wstring& str)
 {
