@@ -1,12 +1,6 @@
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-add_executable(dmp-test
-  dmp_test.cpp
-  dmp_test.h
-  )
-
+add_executable(dmp-test dmp_test.cpp dmp_test.h)
 target_link_libraries(dmp-test dmp)
-set_target_properties(dmp-test PROPERTIES FOLDER "Tests")
-set_property(TARGET dmp-test PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}\\$(Configuration)")
 
 add_test(NAME dmp-test COMMAND dmp-test)
+set_property(TARGET dmp-test PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}\\$(Configuration)")
+
