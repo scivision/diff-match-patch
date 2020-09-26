@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "Timer.h"
+#include <chrono>
 #include "dmp.h"
 #include "dmp_test.h"
 
@@ -75,8 +75,7 @@ diff_match_patch_test::diff_match_patch_test() {
 }
 
 void diff_match_patch_test::run_all_tests() {
-  MTL::Timer t;
-  t.Start();
+  std::chrono::time_point<std::chrono::steady_clock> t_Start = std::chrono::steady_clock::now();
   try {
     testDiffCommonPrefix();
     testDiffCommonSuffix();
@@ -112,8 +111,9 @@ void diff_match_patch_test::run_all_tests() {
   } catch (std::wstring strCase) {
     dmpDebug(L"Test failed: %ls", dmpPrintable(strCase));
   }
-  t.Stop();
-  dmpDebug(L"Total time: %f ms", t.Milliseconds());
+  std::chrono::time_point<std::chrono::steady_clock> t_Stop = std::chrono::steady_clock::now();
+  double delta = std::chrono::duration_cast<std::chrono::milliseconds>(t_Stop - t_Start).count();
+  dmpDebug(L"Total time: %f ms", delta);
 }
 
 //  DIFF TEST FUNCTIONS

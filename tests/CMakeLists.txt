@@ -3,8 +3,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(dmp-test
   dmp_test.cpp
   dmp_test.h
-  Definitions.h
-  Timer.h)
+  )
 
 target_link_libraries(dmp-test dmp)
 set_target_properties(dmp-test PROPERTIES FOLDER "Tests")
