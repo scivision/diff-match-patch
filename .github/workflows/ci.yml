@@ -16,9 +16,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - run: cmake -B build -DBUILD_TESTING=on
-    - run: cmake --build build
-    - run: ctest --test-dir build
+    - run: cmake --preset default -DBUILD_TESTING=on
+    - run: cmake --build --preset default
+    - run: ctest --preset default
 
   macos:
     runs-on: macos-latest
@@ -26,9 +26,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - run: cmake -B build -DBUILD_TESTING=on
-    - run: cmake --build build
-    - run: ctest --test-dir build
+    - run: cmake --preset default -DBUILD_TESTING=on
+    - run: cmake --build --preset default
+    - run: ctest --preset default
 
   windows:
     runs-on: windows-latest
@@ -36,6 +36,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - run: cmake -B build -DBUILD_TESTING=on
-    - run: cmake --build build
-    - run: ctest --test-dir build -C Release
+    - run: cmake --preset default -DBUILD_TESTING=on
+    - run: cmake --build --preset default
+    - run: ctest --preset default -C Debug
