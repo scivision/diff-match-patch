@@ -1,0 +1,41 @@
+name: ci
+
+
+on:
+  push:
+    paths:
+      - "**.cpp"
+      - "**.cmake"
+      - "**/CMakeLists.txt"
+      - ".github/workflows/ci.yml"
+
+jobs:
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - run: cmake -B build -DBUILD_TESTING=on
+    - run: cmake --build build
+    - run: ctest --test-dir build
+
+  macos:
+    runs-on: macos-latest
+    needs: linux
+    steps:
+    - uses: actions/checkout@v2
+
+    - run: cmake -B build -DBUILD_TESTING=on
+    - run: cmake --build build
+    - run: ctest --test-dir build
+
+  windows:
+    runs-on: windows-latest
+    needs: linux
+    steps:
+    - uses: actions/checkout@v2
+
+    - run: cmake -B build -DBUILD_TESTING=on
+    - run: cmake --build build
+    - run: ctest --test-dir build -C Release
