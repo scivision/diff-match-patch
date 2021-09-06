@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
   dmpDebug(L"Starting diff_match_patch unit tests.");
   dmp_test.run_all_tests();
   dmpDebug(L"Done.");
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 
@@ -1192,5 +1192,3 @@ std::deque<Diff> diff_match_patch_test::diffList(Diff d1, Diff d2, Diff d3, Diff
 
   return listRet;
 }
-
-
